@@ -1,26 +1,54 @@
-template <typename scalar_t, typename opmath_t>
+int main() {
+	/* gemm_notrans_(int m, int n, int k,
+        float alpha,
+        const float *a, int lda,
+        const float *b, int ldb,
+        float beta,
+        float *c, int ldc) */
+	return 0;
+}
+
+void scale_(int m, int n, float alpha, float *a, int lda) {
+  if (alpha == 1.0) {
+    return;  // identity
+  }
+  if (alpha == 0.0) {
+    for (int j = 0; j < n; j++) {
+      for (int i = 0; i < m; i++) {
+        a[j * lda + i] = 0.0;
+      }
+    }
+    return;
+  }
+  for (int j = 0; j < n; j++) {
+    for (int i = 0; i < m; i++) {
+      a[j * lda + i] *= alpha;
+    }
+  }
+}
+
 void gemm_notrans_(
-	int64_t m, int64_t n, int64_t k,
-	opmath_t alpha,
-	const scalar_t *a, int64_t lda,
-	const scalar_t *b, int64_t ldb,
-	opmath_t beta,
-	scalar_t *c, int64_t ldc) {
+	int m, int n, int k,
+	float alpha,
+	const float *a, int lda,
+	const float *b, int ldb,
+	float beta,
+	float *c, int ldc) {
 	// c *= beta
 	scale_(m, n, beta, c, ldc);
 
 	// c += alpha * (a @ b)
-	for (const auto l : c10::irange(k)) {
-		for (const auto j : c10::irange(n)) {
-			opmath_t val = b[l + j * ldb] * alpha;
-	      		int64_t i_m = m / 4;
-			for (const auto i_i : c10::irange(i_m)) {
+	for (int l; l < k; l++) {
+		for (int j; j < n; j++) {
+			float val = b[l + j * ldb] * alpha;
+	      		int i_m = m / 4;
+			for (int i_i = 0; i_i < i_m; i_i++) {
 	        		c[j * ldc + i_i * 4 + 0] += a[i_i * 4 + 0 + l * lda] * val;
 	        		c[j * ldc + i_i * 4 + 1] += a[i_i * 4 + 1 + l * lda] * val;
 	        		c[j * ldc + i_i * 4 + 2] += a[i_i * 4 + 2 + l * lda] * val;
 	        		c[j * ldc + i_i * 4 + 3] += a[i_i * 4 + 3 + l * lda] * val;
 	      		}
-	      		int64_t i = i_m * 4;
+	      		int i = i_m * 4;
 	      	for (; i < m; i++)
 	        	c[j * ldc + i] += a[i + l * lda] * val;
 	    	}
